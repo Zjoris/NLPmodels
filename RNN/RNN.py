@@ -45,9 +45,9 @@ class RNN() :
     #  For now I will keep it simple with one recurrent hidden layer
     def init_weights(self,shapes = (1,(100,),1)) :
         # What about bias? 
-        self._U = np.random.uniform(-0.3,0.3,(shapes[1][0],shapes[0]))
-        self._W = np.random.uniform(-0.3,0.3,(shapes[1][-1],shapes[1][0]))
-        self._V = np.random.uniform(-0.3,0.3,(shapes[2],shapes[1][-1]))
+        self._U = np.random.uniform(-0.3,0.3,(shapes[0],shapes[1][0]))
+        self._W = np.random.uniform(-0.3,0.3,(shapes[1][0],shapes[1][-1]))
+        self._V = np.random.uniform(-0.3,0.3,(shapes[1][-1],shapes[2]))
         #self._D = n_layer_init(shapes[1])
 
     def one_layer_out(self,X,w,func) :
@@ -59,25 +59,36 @@ class RNN() :
         return X
 
     # RNN forward function, 
-    def RNN_forward(self,sequences,hid_func,out_func) :
+    #          takes sequences as an (n x seq_len x value_len) np array 
+    #          where value_len is the length of the vector of values
+    # 
+    #       returns all outputs and all hidden states as a tuple of np arrays
+    #       where dimensions are Y: (seq_len x n x val_len)
+    #                            H: (seq_len x n x hidden dims) 
+    def RNN_forward(self,sequences,hid_func=tanh_func,out_func=sigmoid_func) :
         # this should work when seguences consist of vectors as well
         Y = []
         H = []
         hidden_state = np.zeros((sequences.shape[0],self._W.shape[0]))
         for t in range(sequences.shape[1]) :
-            x = np.array([sequences[:,t]]).T
+            x = sequences[:,t]
+            if len(x.shape) == 1  :
+                x = np.array([x]).T
             # if hidden is deep NN make function to forward
                 # Ux = self.forward(self._U@inp)
                 # Wh = self.forward(self._W@hidden_state)
-            Ux = np.dot(x,self._U.T)
+            Ux = np.dot(x,self._U)
             Wh = np.dot(hidden_state,self._W)
             h = hid_func(Ux + Wh)
-            y = out_func(np.dot(h,self._V.T))
+            y = out_func(np.dot(h,self._V))
             H.append(h)
             Y.append(y)
         return (np.array(Y), np.array(H))
 
-    def RNN_backprop(self) :
+    def RNN_backward(self) :
+        pass
+
+    def train() :
         pass
 
 
@@ -90,16 +101,19 @@ if __name__ == "__main__" :
 
     rnn1D = RNN()
     rnn1D.init_weights((1,(100,),1))
-    seq = np.array([[1,2,3],[4,5,6]])
+    seq = np.array([[[1],[2],[3]],[[4],[5],[6]]])
     (Y,H) = rnn1D.RNN_forward(seq,tanh_func,sigmoid_func)
-    print(Y.shape)
     print(H.shape)
+    print(Y.shape)
 
+    print("\n\n ---------------multi Dimensianal values\n\n")
     rnn3D = RNN()
-    rnn3D.init_weights((3,(100,),3))
-    seq3D = np.array([[[0,1,0],[1,0,0],[0,0,1]],[[0,0,1],[0,0,1],[0,0,1]]])
-    print(seq3D)
+    rnn3D.init_weights((4,(100,),4))
+    seq3D = np.arange(2*3*4).reshape((2,3,4))
     (Y3,H3) = rnn3D.RNN_forward(seq3D,tanh_func,sigmoid_func)
+    print(H3.shape)
+    print(Y3.shape)
+
 
     # # Data
     # predict next number in a sine wave function
@@ -114,11 +128,11 @@ if __name__ == "__main__" :
         X.append(sin[i:i+seq_len])
         Y = np.append(Y,sin[i+seq_len])
 
-    X = np.array(X)
+    #X = np.array(X)
     X = expand_dims(X,axis=2)
     Y = expand_dims(Y,axis=1)
 
-    print(X.shape)
+    #print(X.shape)
     #print(rnn.RNN_forward(X,tanh_func).shape)
 
 
