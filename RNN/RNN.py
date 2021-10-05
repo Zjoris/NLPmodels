@@ -20,6 +20,10 @@ from numpy.lib.shape_base import expand_dims
 def sigmoid_func(X) :
     return 1/(1+np.exp(-X))
 
+# A function to calculate the softmax of X (single value or array)
+def softmax_func(X) :
+    return np.exp(X)/np.sum(np.exp(X))
+
 # A function to calculate the tanh of X (single value or array)
 def tanh_func(X) :
     return (np.exp(X)-np.exp(-X))/(np.exp(X)+np.exp(-X))
