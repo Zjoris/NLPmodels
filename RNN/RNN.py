@@ -16,6 +16,8 @@ import math
 from numpy.lib.shape_base import expand_dims
 
 
+#### Activation Functions  ###
+
 # A function to calculate the sigmoid of X (single value or array)
 def sigmoid_func(X) :
     return 1/(1+np.exp(-X))
@@ -28,6 +30,12 @@ def softmax_func(X) :
 def tanh_func(X) :
     return (np.exp(X)-np.exp(-X))/(np.exp(X)+np.exp(-X))
 
+
+#### Loss functions ############
+
+# Cross Entropy loss
+def cross_entropy_loss(yhat, y) :
+    return -sum(y*np.log(yhat))
 
 
 # Recurrent Neural Network
@@ -117,6 +125,8 @@ if __name__ == "__main__" :
     (Y3,H3) = rnn3D.RNN_forward(seq3D,tanh_func,sigmoid_func)
     print(H3.shape)
     print(Y3.shape)
+    print((Y3*np.log(Y3))*-1)
+    print(sum((Y3*np.log(Y3))*-1))
 
 
     # # Data
