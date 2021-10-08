@@ -10,6 +10,7 @@ Notes to self or to do list:
    - Add bias? 
    - Fix Y matrix in RNN_forward (seems a bit inefficient)
 '''
+from sys import dont_write_bytecode
 import numpy as np
 import math
 
@@ -35,7 +36,12 @@ def tanh_func(X) :
 
 # Cross Entropy loss
 def cross_entropy_loss(yhat, y) :
-    return -sum(y*np.log(yhat))
+    return -y*np.log(yhat)
+
+
+def total_loss(loss) :
+    return sum(loss)
+
 
 
 # Recurrent Neural Network
@@ -45,6 +51,8 @@ class RNN() :
         self._W = None
         self._V = None
         self._D = None
+        self._hidden_func = None
+        self._out_func = None
 
     # Initialize random weights where 
     #      U is the weight matrix from input to hidden layers
@@ -78,7 +86,8 @@ class RNN() :
     #       where dimensions are Y: (seq_len x n x val_len)
     #                            H: (seq_len x n x hidden dims) 
     def RNN_forward(self,sequences,hid_func=tanh_func,out_func=sigmoid_func) :
-        # this should work when seguences consist of vectors as well
+        self._hidden_func = hid_func
+        self._out_func = out_func
         Y = []
         H = []
         hidden_state = np.zeros((sequences.shape[0],self._W.shape[0]))
@@ -97,10 +106,39 @@ class RNN() :
             Y.append(y)
         return (np.array(Y), np.array(H))
 
+
+    # Maybe make general function that takes a function fx and dx that specifies 
+    # what to partial on to calculate derivative for any function. 
+    def calc_gradients(self,Y,Yhat,hidden_states,loss_func) :
+        dU = None
+        dW = None
+        dV = None
+        if loss_func == "cross_entropy" and self._out_func == sigmoid_func :
+            # dV
+            sig = sigmoid_func(hidden_states)
+            dV = -Y/Yhat * Y * (1-Y) * hidden_states
+
+            #dU
+
+            #dW
+            return (dU, dW, dV)
+
+    def update_weight(self,learning_rate) :
+        (dU, dW, dV) = self.calc_gradients()
+        self._U = self._U - learning_rate * dU
+        self._W = self._W - learning_rate * dW
+        self._U = self._V - learning_rate * dV
+        pass
+
+
     def RNN_backward(self) :
         pass
 
     def train() :
+        # in loop 
+        #   forward pass
+        #   loss
+        #   backward pass
         pass
 
 
@@ -123,10 +161,14 @@ if __name__ == "__main__" :
     rnn3D.init_weights((4,(100,),4))
     seq3D = np.arange(2*3*4).reshape((2,3,4))
     (Y3,H3) = rnn3D.RNN_forward(seq3D,tanh_func,sigmoid_func)
+    print(rnn3D._U.shape)
     print(H3.shape)
     print(Y3.shape)
-    print((Y3*np.log(Y3))*-1)
-    print(sum((Y3*np.log(Y3))*-1))
+    print(Y3)
+    print(-Y3/Y3 * Y3 *(1-Y3))
+    print(-Y3 *(1-Y3))
+    #print(-(Y3*np.log(Y3)))
+    #print(sum(cross_entropy_loss(Y3,Y3)))
 
 
     # # Data
