@@ -109,30 +109,36 @@ class RNN() :
 
     # Maybe make general function that takes a function fx and dx that specifies 
     # what to partial on to calculate derivative for any function. 
-    def calc_gradients(self,Y,Yhat,hidden_states,loss_func) :
-        dU = None
-        dW = None
-        dV = None
+    def calc_gradients(self,Y,Yhat,H,loss_func) :
+        dU = np.zeros(self._U.shape)
+        dW = np.zeros(self._W.shape)
+        dV = np.zeros(self._V.shape)
         if loss_func == "cross_entropy" and self._out_func == sigmoid_func :
-            # dV
-            dV = 1/Yhat * (Y**3 - Y**2) * hidden_states[-1].T # ? d ht*V/d V = ht ? V - alpha dV wouldn't work because dV has different dimension from V 
-            # Okay so when n=1 and the values provided to the network are scalars
-            # we get that dY/dV = (Y[1x1] -Y[1x1]^2) * h.T[hidden_dimx1] == V.shape This is good because we end up with V shape
-            # Which could also be h.T * Y(1 - Y)
-            # 
-            # now when the values are actually vectors we get 
-            # dY/dV = Y[1x3] * (1-Y[1x3]) * a matrix that is hidden dims x vec_len x vec_len
-            # let's call Y * (1-Y) f(Y)
-            # And because 1x3 * 3*1 = 1x1 we have to dot product Y *(1-Y) with each h vector in dhV/dV which results in
-            #   [ f(Y)11*h11, f(Y)12*h11 ...  f(Y)1vec_len *h11 ] 
-            #   [ f(Y)11*h12, ....]
-            #   [ f(Y)11*h13,     ]
-            #   [ ....]
-            #   [ f(Y)11*h1hiddims, .... ]
-            #   = h.T * f(Y) = h.T * Y*(1-Y)
-            #
-            # Now let's say N>1
-            # 
+            # find gradients for each step in time
+            for (y,yhat,h) in zip(Y,Yhat,H) :
+                # dV
+                dV += np.dot(h.T,1/yhat * (y**3 - y**2)) # ? d ht*V/d V = ht ? V - alpha dV wouldn't work because dV has different dimension from V 
+                # Okay so when n=1 and the values provided to the network are scalars
+                # we get that dY/dV = (Y[1x1] -Y[1x1]^2) * h.T[hidden_dimx1] == V.shape This is good because we end up with V shape
+                # Which could also be h.T * Y(1 - Y)
+                # 
+                # now when the values are actually vectors we get 
+                # dY/dV = Y[1x3] * (1-Y[1x3]) * a matrix that is hidden dims x vec_len x vec_len
+                # let's call Y * (1-Y) f(Y)
+                # And because 1x3 * 3*1 = 1x1 we have to dot product Y *(1-Y) with each h vector in dhV/dV which results in
+                #   [ f(Y)11*h11, f(Y)12*h11 ...  f(Y)1vec_len *h11 ] 
+                #   [ f(Y)11*h12, ....]
+                #   [ f(Y)11*h13,     ]
+                #   [ ....]
+                #   [ f(Y)11*h1hiddims, .... ]
+                #   = h.T * f(Y) = h.T * Y*(1-Y)
+                #
+                # Now let's say N>1
+                #   = h.T * Y*(1-Y)
+                print(dV.shape)
+                print(dV)
+
+
             #dU
 
             #dW
@@ -166,22 +172,22 @@ if __name__ == "__main__" :
 
     rnn1D = RNN()
     rnn1D.init_weights((1,(100,),1))
+    rnn1D._out_func = sigmoid_func
     seq = np.array([[[1],[2],[3]],[[4],[5],[6]]])
     (Y,H) = rnn1D.RNN_forward(seq,tanh_func,sigmoid_func)
     print(H.shape)
     print(Y.shape)
+    print(rnn1D.calc_gradients(Y,Y,H,"cross_entropy"))
 
     print("\n\n ---------------multi Dimensianal values\n\n")
     rnn3D = RNN()
     rnn3D.init_weights((4,(100,),4))
+    rnn3D._out_func = sigmoid_func
     seq3D = np.arange(2*3*4).reshape((2,3,4))
     (Y3,H3) = rnn3D.RNN_forward(seq3D,tanh_func,sigmoid_func)
-    print(rnn3D._U.shape)
     print(H3.shape)
     print(Y3.shape)
-    print(Y3)
-    print(-Y3/Y3 * Y3 *(1-Y3))
-    print(-Y3 *(1-Y3))
+    print(rnn3D.calc_gradients(Y3,Y3,H3,"cross_entropy"))
     #print(-(Y3*np.log(Y3)))
     #print(sum(cross_entropy_loss(Y3,Y3)))
 
