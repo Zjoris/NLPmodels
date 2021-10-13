@@ -109,15 +109,21 @@ class RNN() :
 
     # Maybe make general function that takes a function fx and dx that specifies 
     # what to partial on to calculate derivative for any function. 
-    def calc_gradients(self,Y,Yhat,H,loss_func) :
+    def calc_gradients(self,Y,Yhat,H,loss_func = "cross_entropy",trunc = 3) :
         dU = np.zeros(self._U.shape)
-        dW = np.zeros(self._W.shape)
+        dW = np.zeros(self._W.shape) # grotere list, reken voor elke gradient op, sum voor trunc steps en sum al die dingen bij elkaar op
         dV = np.zeros(self._V.shape)
         if loss_func == "cross_entropy" and self._out_func == sigmoid_func :
             # find gradients for each step in time
+            dEdHV = -Y * (1-Yhat)
+            HT = H.transpose((0,2,1))
+            # matrix multiplication to calculate dV for each time step, sum up to get dV
+            dV1 = sum(np.matmul(HT,dEdHV))
             for (y,yhat,h) in zip(Y,Yhat,H) :
                 # dV
-                dV += np.dot(h.T,1/yhat * (y**3 - y**2)) # ? d ht*V/d V = ht ? V - alpha dV wouldn't work because dV has different dimension from V 
+                # This is not necessary anymore for it is done using 1 matrix multiplication
+                dedhV = -y *(1-yhat)
+                dV += np.dot(h.T,dedhV) # ? d ht*V/d V = ht ? V - alpha dV wouldn't work because dV has different dimension from V 
                 # Okay so when n=1 and the values provided to the network are scalars
                 # we get that dY/dV = (Y[1x1] -Y[1x1]^2) * h.T[hidden_dimx1] == V.shape This is good because we end up with V shape
                 # Which could also be h.T * Y(1 - Y)
@@ -135,13 +141,22 @@ class RNN() :
                 #
                 # Now let's say N>1
                 #   = h.T * Y*(1-Y)
-                print(dV.shape)
-                print(dV)
+                #print(dV.shape)
+                #print(dV/len(Y))
 
 
-            #dU
+                #dU
+                #print(self._V.shape)
+                #print(dedhV.shape)
+                #print(np.dot(dedhV,self._V.T).shape)
+                dedh = np.matmul(dedhV,self._V.T)
+                print(dedh.shape)
+                print((1-h**2).shape)
+                
 
             #dW
+            print(dV.shape)
+            print(dV1 == dV)
             return (dU, dW, dV)
 
     def update_weight(self,learning_rate) :
@@ -175,8 +190,8 @@ if __name__ == "__main__" :
     rnn1D._out_func = sigmoid_func
     seq = np.array([[[1],[2],[3]],[[4],[5],[6]]])
     (Y,H) = rnn1D.RNN_forward(seq,tanh_func,sigmoid_func)
-    print(H.shape)
-    print(Y.shape)
+    #print(H.shape)
+    #print(Y.shape)
     print(rnn1D.calc_gradients(Y,Y,H,"cross_entropy"))
 
     print("\n\n ---------------multi Dimensianal values\n\n")
